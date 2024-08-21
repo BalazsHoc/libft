@@ -5,14 +5,21 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: bhocsak <marvin@42.fr>                     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/04/15 18:24:07 by bhocsak           #+#    #+#             */
-/*   Updated: 2024/04/17 18:26:57 by bhocsak          ###   ########.fr       */
+/*   Created: 2024/08/09 16:14:10 by bhocsak           #+#    #+#             */
+/*   Updated: 2024/08/09 16:14:22 by bhocsak          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-static int	ft_count_words(const char *s, char c)
+static int	is_det(char c)
+{
+	if (c == ' ' || c == '\t')
+		return (1);
+	return (0);
+}
+
+static int	ft_count_words(const char *s)
 {
 	int		words;
 	size_t	i;
@@ -21,116 +28,77 @@ static int	ft_count_words(const char *s, char c)
 	i = 0;
 	while (s[i])
 	{
-		if (i == 0 && s[i] != c)
+		if (i == 0 && !is_det(s[i]))
 			words++;
-		if (i > 0 && s[i] != c && s[i - 1] == c)
+		if (i > 0 && !is_det(s[i]) && is_det(s[i - 1]))
 			words++;
 		i++;
 	}
 	return (words);
 }
 
-static char	**ft_malloc_strs(char **strs, const char *s, char c)
+static char	**ft_malloc_cpy(char **new, const char *s)
 {
 	size_t	count;
 	size_t	i;
 	size_t	j;
 
 	count = 0;
-	i = 0;
-	j = 0;
-	while (s[i])
+	i = -1;
+	while (s[++i])
 	{
-		if (s[i] != c)
-			count++;
-		if ((s[i] == c && i > 0 && s[i - 1] != c)
-			|| (s[i] != c && s[i + 1] == '\0'))
+		if ((i == 0 && !is_det(s[i])) || (!is_det(s[i]) && is_det(s[i - 1])))
 		{
-			strs[j] = malloc(sizeof(char) * (count + 1));
-			if (!strs[j])
+			j = 0;
+			while (s[i + j] && !is_det(s[i + j]))
+				j++;
+			new[count] = malloc(sizeof(char) * (j + 1));
+			if (!new[count])
 				return (NULL);
-			count = 0;
-			j++;
+			new[count++][j] = '\0';
+			j = 0;
+			while (s[i] && !is_det(s[i]))
+				new[count - 1][j++] = s[i++];
 		}
-		i++;
 	}
-	return (strs);
+	return (new);
 }
 
-static char	**ft_cpy_strs(char **strs, const char *s, char c)
-{
-	size_t	i;
-	size_t	j;
-	size_t	k;
-
-	i = 0;
-	j = 0;
-	k = 0;
-	while (s[i])
-	{
-		if (s[i] != c)
-			strs[j][k++] = s[i];
-		if (s[i] != c && s[i + 1] == '\0')
-			strs[j][k] = '\0';
-		if (s[i] == c && i > 0 && s[i - 1] != c)
-		{
-			strs[j][k] = '\0';
-			j++;
-			k = 0;
-		}
-		i++;
-	}
-	return (strs);
-}
-
-static char	**ft_merror(char **strs)
+static void	ft_merror(char **new)
 {
 	size_t	i;
 
 	i = 0;
-	while (strs[i])
+	while (new[i])
 	{
-		free(strs[i]);
-		strs[i] = NULL;
+		free(new[i]);
+		new[i] = NULL;
 		i++;
 	}
-	free(strs);
-	return (NULL);
+	free(new);
+	new = NULL;
 }
 
-char	**ft_split(char const *s, char c)
+char	**ft_split(char *s)
 {
-	char	**strs;
+	char	**new;
 	int		wordcount;
 
-	if (!s)
+	wordcount = ft_count_words(s);
+	if (!wordcount)
 	{
-		strs = malloc(sizeof(char) * 1);
-		if (!strs)
-			return (NULL);
-		*strs = NULL;
-		return (strs);
+		write(2, "Error\n", 6);
+		exit(1);
 	}
-	wordcount = ft_count_words(s, c);
-	strs = malloc(sizeof(*strs) * (wordcount + 1));
-	if (!strs)
-		return (NULL);
-	if (ft_malloc_strs(strs, s, c))
-	{
-		ft_cpy_strs(strs, s, c);
-		strs[wordcount] = NULL;
-	}
+	new = malloc(sizeof(char *) * (wordcount + 1));
+	if (!new)
+		exit(2);
+	if (ft_malloc_cpy(new, s))
+		new[wordcount] = NULL;
 	else
-		strs = ft_merror(strs);
-	return (strs);
+	{
+		ft_merror(new);
+		return (NULL);
+	}
+	return (new);
 }
-/*
-#include <stdio.h>
-
-int	main()
-{
-	char *s = "   Hello there, duude!";
-	char **v = ft_split(s, ' ');
-	while (*v)
-		printf("%s\n", *v++);
-}*/
